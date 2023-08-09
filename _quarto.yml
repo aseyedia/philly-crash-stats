@@ -1,0 +1,8 @@
+project:
+  type: website
+  output-dir: docs
+  execute-dir: project
+  
+theme:
+  light: flatly
+  dark: darkly

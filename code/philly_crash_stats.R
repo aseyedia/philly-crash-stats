@@ -3,11 +3,12 @@ library(ggmap)
 library(rvest)
 # https://crashinfo.penndot.gov/PCIT/welcome.html
 library(data.table)
-setwd("/home/arta/Documents/GitHub/Philly-Crash-Stats/")
 library(here)
 library(dplyr)
 library(ggplot2)
 library(gganimate)
+
+setwd("GitHub_Repos/philly-crash-stats/")
 
 register_google("AIzaSyAc-8C3pgIyfiouzhX1K1iklFUABLn4aC4")
 
@@ -28,7 +29,6 @@ data_sets <-
     "TRAILVEH",
     "VEHICLE")
 
-# Initialize an empty list to hold the data
 data <- list()
 
 handle_mismatch <- function(df1, df2) {
@@ -45,7 +45,7 @@ handle_mismatch <- function(df1, df2) {
 
 for (data_set in data_sets) {
   file_path <-
-    Sys.glob(paste0("data/zip/*/", data_set, "*"))
+    Sys.glob(paste0("data/zip/", data_set, "*"))
   
   for (i in seq_along(file_path)) {
     # Load the data set from the CSV file
@@ -83,6 +83,9 @@ ggplot(crash_year_df, aes(x = Year, y = Count)) +
 # Perform a linear regression for the downtrend
 lm_result <- lm(Count ~ Year, data = crash_year_df)
 summary(lm_result)
+
+# Extract the p-value
+p_value <- summary(lm_result)$coefficients[2, 4]
 
 crash_month_table <- table(data$crash$CRASH_MONTH)
 
@@ -126,6 +129,7 @@ cycle_crash_data %>%
   summarise(total_deaths = sum(BICYCLE_DEATH_COUNT, na.rm = TRUE)) %>%
   ggplot(aes(x = PC_HLMT_IND, y = total_deaths)) +
   geom_bar(stat = "identity") +
+  geom_text(aes(label = total_deaths), vjust = -0.5) + 
   labs(title = "Total Bicycle Deaths by Helmet Usage",
        x = "Helmet Usage",
        y = "Total Deaths")
