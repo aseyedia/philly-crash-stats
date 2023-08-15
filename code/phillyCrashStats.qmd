@@ -109,13 +109,11 @@ The following for-loop calls of the the paths for each of the data sets for each
 I already have an agenda with exploring these data, but for the sake of curiosity, let's examine some overall trends in the collision data.
 
 ```{r}
-# Convert your table into a data frame
 crash_year_table <- table(data$crash$CRASH_YEAR)
 crash_year_df <-
   data.frame(Year = as.integer(names(crash_year_table)),
              Count = as.integer(crash_year_table))
 
-# Create the histogram with a trend line
 ggplot(crash_year_df, aes(x = Year, y = Count)) +
   geom_col(fill = "steelblue") +
   geom_smooth(method = "lm",
@@ -277,7 +275,6 @@ p <-
     alpha = .5
   )
 
-# Set the color scale to differentiate between helmeted and non-helmeted fatalities
 philly_cycle_crashes <- p + scale_color_manual(values = c("0" = "gray", "1" = "red"))
 
 print(philly_cycle_crashes)
@@ -293,11 +290,9 @@ We can animate this plot to show cyclist deaths by year:\
 
 ```{r, warning=FALSE}
 
-# Animate the plot over time
 p <- philly_cycle_crashes + transition_time(CRASH_YEAR) +
   labs(title = "Philadelphia Bicyclist Crashes Colored by Whether They Resulted in a Death, 2002-2021\nYear: {frame_time}", color = "How many cyclists died??")
 
-# Display the plot
 p <- animate(
   p,
   fps = 1,
@@ -365,13 +360,11 @@ data_subset <- merge(data_subset, data[['cycle']], by = "CRN")
 
 data_subset[data_subset$PC_HLMT_IND == "", ]$PC_HLMT_IND <- "U"
 
-# Add the points from your dataset
 p <-
   philly_ggmap + geom_point(data = data_subset,
                             aes(x = DEC_LONG, y = DEC_LAT, color = PC_HLMT_IND),
                             alpha = 0.5)
 
-# Set the color scale to differentiate between helmeted and non-helmeted fatalities
 p <-
   p + scale_color_manual(values = c(
     "N" = "red",
@@ -393,7 +386,6 @@ data_subset <- data[["crash"]][data[["crash"]]$BICYCLE_COUNT > 0,]
 
 data_subset <- merge(data_subset, data[['roadway']], by = "CRN")
 
-# Count accidents and fatalities by street name
 street_summary <- data_subset %>%
   group_by(STREET_NAME) %>%
   summarise(
@@ -402,20 +394,17 @@ street_summary <- data_subset %>%
     .groups = "drop"
   )
 
-# Order the data by accident count and fatality count for the respective plots
 street_summary_accidents <- street_summary %>%
   arrange(desc(AccidentCount))
 
 street_summary_fatalities <- street_summary %>%
   arrange(desc(FatalityCount))
 
-# Create the plot for accident count
 p1 <- ggplot(street_summary_accidents[1:10, ], aes(x = reorder(STREET_NAME, AccidentCount), y = AccidentCount)) +
   geom_bar(stat = "identity") +
   coord_flip() +
   labs(x = "Street Name", y = "Number of Accidents", title = "Top 10 Streets by Number of Accidents")
 
-# Create the plot for fatality count
 p2 <- ggplot(street_summary_fatalities[1:10, ], aes(x = reorder(STREET_NAME, FatalityCount), y = FatalityCount)) +
   geom_bar(stat = "identity") +
   coord_flip() +
@@ -424,7 +413,7 @@ p2 <- ggplot(street_summary_fatalities[1:10, ], aes(x = reorder(STREET_NAME, Fat
 grid.arrange(p1, p2, nrow=2)
 ```
 
-As a cyclist who has lived in Philly, I've always been wary of certain streets. The data confirms my concerns. Broad and Market St., leading the list of accident-prone areas, don't surprise me. They are major thoroughfares in the city, with Broad St. notably lacking the protective physical barriers for bike lanes that Market St. benefits from.
+As a cyclist who living in Philly, I've always been wary of certain streets. The data confirms my concerns. Broad and Market St., leading the list of accident-prone areas, don't surprise me. They are major thoroughfares in the city, with Broad St. notably lacking the protective physical barriers for bike lanes that Market St. benefits from.
 
 During my time in Philly, I resided in the Fairmount neighborhood, close to Spring Garden St. -- another hotspot on the list. It serves as a key arterial route with an unprotected bike lane often flanked by fast-moving traffic. Its counterpart in South Philly, Washington Ave., has fortunately seen recent efforts to enhance cyclist safety. But Girard Ave.'s position, topping the fatality list, is concerning. Although it's unexpected, given its inconsistent bike lanes and lack of sturdy protection, the danger it poses to cyclists is, unfortunately, understandable.
 
