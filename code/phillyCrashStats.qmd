@@ -155,7 +155,7 @@ data$crash %>%
 
 Here, we observe no readily evident long-term trend; however, there has been a remarkable uptick in bicycle deaths in 2020 and 2021, which fall squarely into the "Pandemic Years." This short-term trend agrees with PennDOT's own findings that [traffic fatalities rose during the pandemic despite less roadway traffic.](https://www.penndot.pa.gov/TravelInPA/Safety/pages/crash-facts-and-statistics.aspx#:~:text=In%202019%2C%20Pennsylvania's%20traffic,%2C%20decreasing%204%25%20to%201%2C179.) The Government Accountability Office also concurs that nationally, [traffic fatalities rose during the COVID-19 lock downs](https://www.gao.gov/blog/during-covid-19-road-fatalities-increased-and-transit-ridership-dipped), which they attribute to potentially riskier driving behavior during these years. Indeed, it may stand to reason that if there are fewer motor vehicles on the road, motorists may engage in riskier driving, which especially puts pedestrians and cyclists in harms way. A New York Times article from 2023 also found [that pedestrian deaths have risen by a staggering 77% from 2010 to 2021.](https://www.nytimes.com/2023/06/27/us/pedestrian-deaths-2022.html)
 
-It stands to reason that, if you're a cyclist, you'd want to identify the most dangerous roadways to better understand the risks of cycling and plan commutes that lessen your chances of becoming injured, or worse.
+If you're a cyclist, you'd want to identify the most dangerous roadways to better understand the risks of cycling and plan commutes that lessen your chances of becoming injured, or worse.
 
 ```{r}
 cycle_crash_data <- merge(data$crash, data$cycle, by = "CRN")
@@ -173,7 +173,7 @@ cycle_crash_data %>%
        y = "Total Crashes")
 ```
 
-Here, we can observe that the vast majority of cyclists involved in a collision were not wearing a helmet at the time of collision. The `U` for "Unknown" code complicates this finding, as they were likely cyclists whose helmet usage was not logged at the time of the incident. Regardless, these data are concerning, given that helmet usage is linked to a [63-88% reduction in in the risk of head, brain and severe brain injury for all ages of bicyclists.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2598379/)
+The vast majority of cyclists involved in a collision were not wearing a helmet at the time of collision. The `U` for "Unknown" code complicates this finding, as they were likely cyclists whose helmet usage was not logged at the time of the incident. Regardless, these data are concerning, given that helmet usage is linked to a [63-88% reduction in in the risk of head, brain and severe brain injury for all ages of bicyclists.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2598379/)
 
 ```{r}
 cycle_crash_data %>%
@@ -199,7 +199,7 @@ cycle_crash_data %>%
   )
 ```
 
-If we were to take the ratio of deaths to collisions by whether they are wearing helmet, we would observe that unhelmeted cyclists have a higher death-to-collision ratio compared to helmeted cyclists. While a simple ratio isn't alone enough to make any definitive claim and there might be other factors at play, such as environmental conditions, severity of crash, etc., it does make a compelling case for wearing a helmet on the road as a cyclist.
+If we were to take the ratio of deaths to collisions by whether they are wearing helmet, we would see that unhelmeted cyclists have a higher death-to-collision ratio compared to helmeted cyclists. While a simple ratio isn't alone enough to make any definitive claim and there might be other factors at play, it does make a compelling case for wearing a helmet on the road as a cyclist.
 
 Let's visualize these statistics.
 
@@ -286,7 +286,7 @@ Above, we have plotted all cyclist deaths that have occurred in Philadelphia fro
 table(data_subset$BICYCLE_DEATH_COUNT)
 ```
 
-We can animate this plot to show cyclist deaths by year:\
+We can animate this plot to show cyclist deaths by year:
 
 ```{r, warning=FALSE}
 
@@ -415,6 +415,6 @@ grid.arrange(p1, p2, nrow=2)
 
 As a cyclist who living in Philly, I've always been wary of certain streets. The data confirms my concerns. Broad and Market St., leading the list of accident-prone areas, don't surprise me. They are major thoroughfares in the city, with Broad St. notably lacking the protective physical barriers for bike lanes that Market St. benefits from.
 
-During my time in Philly, I resided in the Fairmount neighborhood, close to Spring Garden St. -- another hotspot on the list. It serves as a key arterial route with an unprotected bike lane often flanked by fast-moving traffic. Its counterpart in South Philly, Washington Ave., has fortunately seen recent efforts to enhance cyclist safety. But Girard Ave.'s position, topping the fatality list, is concerning. Although it's unexpected, given its inconsistent bike lanes and lack of sturdy protection, the danger it poses to cyclists is, unfortunately, understandable.
+During my time in Philly, I I have lived in the Fairmount neighborhood, near Spring Garden St. -- another hotspot on the list. It serves as a key arterial route with an unprotected bike lane often flanked by fast-moving traffic. Its counterpart in South Philly, Washington Ave., has fortunately seen recent efforts to enhance cyclist safety. But Girard Ave.'s position, topping the fatality list, is concerning. Although it's unexpected, given its inconsistent bike lanes and lack of sturdy protection, the danger it poses to cyclists is, unfortunately, understandable.
 
 These findings lead me to wonder what role gentrification plays in the pedestrianization of city streets. Throughout Philly, transit-rich and pedestrian-friendly areas generally tend to be the ones with greater property values. This reflects the unfortunate reality that street safety can be seen as a privilege, rather than a critical aspect of good infrastructure. A future analysis could break these findings down further by neighborhood to potentially uncover a relationship between street safety, property values, and the rate of neighborhood gentrification. This could provide insights into the prioritization of urban planning and infrastructure improvements based on socio-economic dynamics. I hope this analysis sheds light on the importance of proactively addressing urban cycling safety, and I encourage further explorations into the intersections of urban planning, infrastructure, and societal factors.
