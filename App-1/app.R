@@ -1,39 +1,51 @@
 library(shiny)
-library(dplyr)
+library(shinydashboard)
 library(plotly)
-library(tidyr)
+library(shinyjs)
 
-# Load processed data
-# load("data/processed/preprocessed.Rdata")
+# Load preprocessed data
+# load("data/processed_rdata/preprocessed.Rdata")
 
-ui <- fluidPage(
-  titlePanel("Philly Auto Collisions Dashboard"),
-  sidebarLayout(
-    sidebarPanel(
-      actionButton("toggleSidebar", "Toggle Sidebar"),
-      div(id = "checkboxPanel", style = "max-height: 400px; overflow-y: auto;",
-          checkboxGroupInput("flagSelection", "Select Crash Flags to Display:",
-                             choices = colnames(data$flag)[-1],  # Exclude CRN
-                             selected = c("FATAL", "INJURY"))
-      )
+ui <- dashboardPage(
+  dashboardHeader(title = "Philly Auto Collisions Dashboard"),
+  
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+      menuItem("About", tabName = "about", icon = icon("info-circle"))
     ),
-    mainPanel(
-      fluidRow(
-        column(6, plotlyOutput("collisionTrend")),
-        column(6, plotlyOutput("summaryStats"))
+    width = 250
+  ),
+  
+  dashboardBody(
+    useShinyjs(),  # Initialize shinyjs
+    tabItems(
+      tabItem(tabName = "dashboard",
+              fluidRow(
+                column(width = 6,
+                       box(title = "Collision Trend Over Time", width = NULL, plotlyOutput("collisionTrend", height = 350))
+                ),
+                column(width = 6,
+                       box(
+                         title = "Summary Statistics",
+                         width = NULL,
+                         selectInput("flagSelection", "Select Crash Flags to Display:",
+                                     choices = colnames(data$flag)[-1],  # Exclude CRN
+                                     selected = c("FATAL", "INJURY"),
+                                     multiple = TRUE,
+                                     selectize = TRUE),
+                         plotlyOutput("summaryStats", height = 350)
+                       )
+                )
+              )
+      ),
+      tabItem(tabName = "about",
+              h2("About this dashboard"),
+              p("This dashboard visualizes auto collision data in Philadelphia.")
       )
     )
-  ),
-  tags$script(HTML('
-    $(document).ready(function() {
-      $("#toggleSidebar").click(function() {
-        $("#checkboxPanel").toggle();
-      });
-    });
-  '))
+  )
 )
-
-
 
 server <- function(input, output, session) {
   # Colors
@@ -47,7 +59,7 @@ server <- function(input, output, session) {
     
     plot_ly(trend_df, x = ~Year, y = ~Total, type = 'scatter', mode = 'lines+markers', source = "collisionTrend",
             text = ~Total, hoverinfo = 'text', line = list(color = colors["Total Collisions"])) %>%
-      layout(title = "Collision Trend Over Time", xaxis = list(title = "Year"), yaxis = list(title = "Total Collisions")) %>%
+      layout(xaxis = list(title = "Year"), yaxis = list(title = "Total Collisions")) %>%
       config(displayModeBar = FALSE)
   })
   
@@ -66,11 +78,9 @@ server <- function(input, output, session) {
     
     plot_ly(flag_counts_long, labels = ~Flag, values = ~Count, type = 'pie', source = "summaryStats",
             textinfo = 'percent', hoverinfo = 'label+percent', insidetextorientation = 'radial') %>%
-      layout(title = "Summary Statistics") %>%
       config(displayModeBar = FALSE)
   })
 }
 
 # Run the application
 shinyApp(ui = ui, server = server)
-
