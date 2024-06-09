@@ -50,3 +50,5 @@ data/
 >>>>>>> 3eb2a42 (initial commit)
 
 /.quarto/
+
+.DS_Store

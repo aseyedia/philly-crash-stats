@@ -7,8 +7,12 @@ library(here)
 library(dplyr)
 library(ggplot2)
 library(gganimate)
+library(shiny)
+library(here)
 
-setwd("GitHub_Repos/philly-crash-stats/")
+# setwd("GitHub_Repos/philly-crash-stats/")
+
+here::dr_here()
 
 register_google("AIzaSyAc-8C3pgIyfiouzhX1K1iklFUABLn4aC4")
 
@@ -61,6 +65,8 @@ for (data_set in data_sets) {
     }
   }
 }
+
+# save(data, file = here("data/preprocessed.Rdata"))
 
 # EDA ####
 ## GENERAL ####
