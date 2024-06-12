@@ -64,28 +64,58 @@ server <- function(input, output, session) {
     "Total Severe Injuries" = "#8da0cb"
   )
   
+  # Reactive value to store the selected flag
+  selectedFlag <- reactiveVal(NULL)
+  
   # Render collision trend over time
   output$collisionTrend <- renderPlotly({
-    trend_df <- data$crash %>%
-      group_by(Year = CRASH_YEAR) %>%
-      summarise(Total = n())
+    # Get the selected flag
+    flag <- selectedFlag()
     
-    plot_ly(
-      trend_df,
-      x = ~ Year,
-      y = ~ Total,
-      type = 'scatter',
-      mode = 'lines+markers',
-      source = "collisionTrend",
-      text = ~ Total,
-      hoverinfo = 'text',
-      line = list(color = colors["Total Collisions"])
-    ) %>%
-      layout(xaxis = list(title = "Year"),
-             yaxis = list(title = "Total Collisions")) %>%
-      config(displayModeBar = FALSE)
+    if (is.null(flag)) {
+      trend_df <- data$crash %>%
+        group_by(Year = CRASH_YEAR) %>%
+        summarise(Total = n())
+      
+      plot_ly(
+        trend_df,
+        x = ~ Year,
+        y = ~ Total,
+        type = 'scatter',
+        mode = 'lines+markers',
+        source = "collisionTrend",
+        text = ~ Total,
+        hoverinfo = 'text',
+        line = list(color = colors["Total Collisions"])
+      ) %>%
+        layout(xaxis = list(title = "Year"),
+               yaxis = list(title = "Total Collisions")) %>%
+        config(displayModeBar = FALSE)
+    } else {
+      trend_df <- data$crash %>%
+        filter(data$flag[[flag]] == 1) %>%
+        group_by(Year = CRASH_YEAR) %>%
+        summarise(Total = n())
+      
+      plot_ly(
+        trend_df,
+        x = ~ Year,
+        y = ~ Total,
+        type = 'scatter',
+        mode = 'lines+markers',
+        source = "collisionTrend",
+        text = ~ Total,
+        hoverinfo = 'text',
+        line = list(color = colors["Total Collisions"])
+      ) %>%
+        layout(xaxis = list(title = "Year"),
+               yaxis = list(title = "Total Collisions"),
+               title = paste("Trend for", flag)) %>%
+        config(displayModeBar = FALSE)
+    }
   })
   
+  # Render summary statistics as a bar chart based on selected flags
   output$summaryStats <- renderPlotly({
     selected_flags <- input$flagSelection
     if (is.null(selected_flags) || length(selected_flags) == 0) {
@@ -115,12 +145,13 @@ server <- function(input, output, session) {
     
     plot_ly(
       flag_counts_long,
-      x = ~ Flag,
-      y = ~ Count,
+      x = ~Flag,
+      y = ~Count,
       type = 'bar',
       marker = list(color = colors),
-      text = ~ Count,
-      hoverinfo = 'text'
+      text = ~Count,
+      hoverinfo = 'text',
+      source = "summaryStats"
     ) %>%
       layout(
         xaxis = list(title = "Crash Flags"),
@@ -130,7 +161,13 @@ server <- function(input, output, session) {
       config(displayModeBar = FALSE)
   })
   
-  
+  # Observe event for clicking on the bar chart
+  observeEvent(event_data("plotly_click", source = "summaryStats"), {
+    click_data <- event_data("plotly_click", source = "summaryStats")
+    if (!is.null(click_data)) {
+      selectedFlag(click_data$x)
+    }
+  })
 }
 
 # Run the application
