@@ -67,53 +67,41 @@ server <- function(input, output, session) {
   # Reactive value to store the selected flag
   selectedFlag <- reactiveVal(NULL)
   
-  # Render collision trend over time
   output$collisionTrend <- renderPlotly({
-    # Get the selected flag
-    flag <- selectedFlag()
+    trend_df <- data$crash %>%
+      group_by(Year = CRASH_YEAR) %>%
+      summarise(Total = n())
     
-    if (is.null(flag)) {
-      trend_df <- data$crash %>%
-        group_by(Year = CRASH_YEAR) %>%
-        summarise(Total = n())
-      
-      plot_ly(
-        trend_df,
-        x = ~ Year,
-        y = ~ Total,
-        type = 'scatter',
-        mode = 'lines+markers',
-        source = "collisionTrend",
-        text = ~ Total,
-        hoverinfo = 'text',
-        line = list(color = colors["Total Collisions"])
+    plot_ly(
+      trend_df,
+      x = ~ Year,
+      y = ~ Total,
+      type = 'scatter',
+      mode = 'lines+markers',
+      source = "collisionTrend",
+      text = ~ paste("Year:", Year, "<br>Total Collisions:", Total),
+      hoverinfo = 'text'
+    ) %>%
+      layout(
+        hovermode = "x unified",
+        shapes = list(
+          list(
+            type = "line",
+            x0 = 0,
+            x1 = 1,
+            xref = "paper",
+            y0 = 0,
+            y1 = 1,
+            yref = "paper",
+            line = list(color = "black", width = 1, dash = "dot")
+          )
+        ),
+        xaxis = list(title = "Year"),
+        yaxis = list(title = "Total Collisions")
       ) %>%
-        layout(xaxis = list(title = "Year"),
-               yaxis = list(title = "Total Collisions")) %>%
-        config(displayModeBar = FALSE)
-    } else {
-      trend_df <- data$crash %>%
-        filter(data$flag[[flag]] == 1) %>%
-        group_by(Year = CRASH_YEAR) %>%
-        summarise(Total = n())
-      
-      plot_ly(
-        trend_df,
-        x = ~ Year,
-        y = ~ Total,
-        type = 'scatter',
-        mode = 'lines+markers',
-        source = "collisionTrend",
-        text = ~ Total,
-        hoverinfo = 'text',
-        line = list(color = colors["Total Collisions"])
-      ) %>%
-        layout(xaxis = list(title = "Year"),
-               yaxis = list(title = "Total Collisions"),
-               title = paste("Trend for", flag)) %>%
-        config(displayModeBar = FALSE)
-    }
+      config(displayModeBar = FALSE)
   })
+  
   
   # Render summary statistics as a bar chart based on selected flags
   output$summaryStats <- renderPlotly({
