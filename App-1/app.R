@@ -86,36 +86,48 @@ server <- function(input, output, session) {
       config(displayModeBar = FALSE)
   })
   
-  # Render summary statistics as a pie chart based on selected flags
-  output$summaryStats <- renderPlotly({
-    selected_flags <- input$flagSelection
-    if (is.null(selected_flags) || length(selected_flags) == 0) {
-      return(NULL)
-    }
-    
-    flag_counts <- data$flag %>%
-      select(CRN, all_of(selected_flags)) %>%
-      summarise(across(all_of(selected_flags), ~ sum(. == 1, na.rm = TRUE)))
-    
-    flag_counts_long <- pivot_longer(
-      flag_counts,
-      cols = everything(),
-      names_to = "Flag",
-      values_to = "Count"
-    )
-    
-    plot_ly(
-      flag_counts_long,
-      labels = ~ Flag,
-      values = ~ Count,
-      type = 'pie',
-      source = "summaryStats",
-      textinfo = 'percent',
-      hoverinfo = 'label+percent',
-      insidetextorientation = 'radial'
+  # Render summary statistics as a bar chart based on selected flags
+output$summaryStats <- renderPlotly({
+  selected_flags <- input$flagSelection
+  if (is.null(selected_flags) || length(selected_flags) == 0) {
+    return(NULL)
+  }
+  
+  flag_counts <- data$flag %>%
+    select(CRN, all_of(selected_flags)) %>%
+    summarise(across(all_of(selected_flags), ~ sum(. == 1, na.rm = TRUE)))
+  
+  flag_counts_long <- pivot_longer(
+    flag_counts,
+    cols = everything(),
+    names_to = "Flag",
+    values_to = "Count"
+  )
+  
+  # Sort by count
+  flag_counts_long <- flag_counts_long %>%
+    arrange(desc(Count))
+  
+  # Assign colors
+  colors <- RColorBrewer::brewer.pal(n = nrow(flag_counts_long), name = "Set1")
+  
+  plot_ly(
+    flag_counts_long,
+    x = ~Flag,
+    y = ~Count,
+    type = 'bar',
+    marker = list(color = colors),
+    text = ~Count,
+    hoverinfo = 'text'
+  ) %>%
+    layout(
+      xaxis = list(title = "Crash Flags"),
+      yaxis = list(title = "Count"),
+      title = "Summary Statistics"
     ) %>%
-      config(displayModeBar = FALSE)
-  })
+    config(displayModeBar = FALSE)
+})
+
 }
 
 # Run the application
