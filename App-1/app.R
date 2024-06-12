@@ -7,7 +7,6 @@ library(tidyverse)
 # Load preprocessed data
 # load("data/processed_rdata/preprocessed.Rdata")
 
-
 ui <- dashboardPage(
   dashboardHeader(title = "Philly Auto Collisions Dashboard"),
   
@@ -64,44 +63,45 @@ server <- function(input, output, session) {
     "Total Severe Injuries" = "#8da0cb"
   )
   
-  # Reactive value to store the selected flag
-  selectedFlag <- reactiveVal(NULL)
-  
+  # Render collision trend over time
   output$collisionTrend <- renderPlotly({
     trend_df <- data$crash %>%
       group_by(Year = CRASH_YEAR) %>%
       summarise(Total = n())
     
-    plot_ly(
-      trend_df,
-      x = ~ Year,
-      y = ~ Total,
-      type = 'scatter',
-      mode = 'lines+markers',
-      source = "collisionTrend",
-      text = ~ paste("Year:", Year, "<br>Total Collisions:", Total),
-      hoverinfo = 'text'
-    ) %>%
+    selected_flags <- input$flagSelection
+    
+    trend_data <- trend_df %>%
+      mutate(Flag = "Total Collisions")
+    
+    if (!is.null(selected_flags) && length(selected_flags) > 0) {
+      for (flag in selected_flags) {
+        trend_df_filtered <- data$flag %>%
+          filter(!!sym(flag) == 1) %>%
+          select(CRN) %>%
+          inner_join(data$crash, by = "CRN") %>%
+          group_by(Year = CRASH_YEAR) %>%
+          summarise(Count = n()) %>%
+          mutate(Flag = flag)
+        
+        trend_data <- bind_rows(trend_data, trend_df_filtered)
+      }
+    }
+    
+    colors <- c(
+      "Total Collisions" = "#66c2a5",
+      setNames(RColorBrewer::brewer.pal(n = length(selected_flags), name = "Set1"), selected_flags)
+    )
+    
+    plot_ly() %>%
+      add_lines(data = trend_data, x = ~Year, y = ~Count, color = ~Flag, colors = colors) %>%
       layout(
-        hovermode = "x unified",
-        shapes = list(
-          list(
-            type = "line",
-            x0 = 0,
-            x1 = 1,
-            xref = "paper",
-            y0 = 0,
-            y1 = 1,
-            yref = "paper",
-            line = list(color = "black", width = 1, dash = "dot")
-          )
-        ),
         xaxis = list(title = "Year"),
-        yaxis = list(title = "Total Collisions")
+        yaxis = list(title = "Total Collisions"),
+        hovermode = "x unified"
       ) %>%
       config(displayModeBar = FALSE)
   })
-  
   
   # Render summary statistics as a bar chart based on selected flags
   output$summaryStats <- renderPlotly({
@@ -125,11 +125,8 @@ server <- function(input, output, session) {
     flag_counts_long <- flag_counts_long %>%
       arrange(desc(Count))
     
-    # Convert 'Flag' to a factor with levels ordered by 'Count'
-    flag_counts_long$Flag <- factor(flag_counts_long$Flag, levels = flag_counts_long$Flag)
-    
     # Assign colors
-    colors <- RColorBrewer::brewer.pal(n = nrow(flag_counts_long), name = "Set1")
+    colors <- RColorBrewer::brewer.pal(n = max(3, nrow(flag_counts_long)), name = "Set1")
     
     plot_ly(
       flag_counts_long,
@@ -138,8 +135,7 @@ server <- function(input, output, session) {
       type = 'bar',
       marker = list(color = colors),
       text = ~Count,
-      hoverinfo = 'text',
-      source = "summaryStats"
+      hoverinfo = 'text'
     ) %>%
       layout(
         xaxis = list(title = "Crash Flags"),
@@ -147,14 +143,6 @@ server <- function(input, output, session) {
         title = "Summary Statistics"
       ) %>%
       config(displayModeBar = FALSE)
-  })
-  
-  # Observe event for clicking on the bar chart
-  observeEvent(event_data("plotly_click", source = "summaryStats"), {
-    click_data <- event_data("plotly_click", source = "summaryStats")
-    if (!is.null(click_data)) {
-      selectedFlag(click_data$x)
-    }
   })
 }
 
