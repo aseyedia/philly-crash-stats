@@ -56,12 +56,8 @@ ui <- dashboardPage(
 )
 
 server <- function(input, output, session) {
-  # Colors
-  colors <- c(
-    "Total Collisions" = "#66c2a5",
-    "Total Fatalities" = "#fc8d62",
-    "Total Severe Injuries" = "#8da0cb"
-  )
+  # Define a consistent color palette
+  color_palette <- RColorBrewer::brewer.pal(n = 12, name = "Set1")
   
   # Render collision trend over time
   output$collisionTrend <- renderPlotly({
@@ -90,7 +86,7 @@ server <- function(input, output, session) {
     
     colors <- c(
       "Total Collisions" = "#66c2a5",
-      setNames(RColorBrewer::brewer.pal(n = length(selected_flags), name = "Set1"), selected_flags)
+      setNames(color_palette[1:length(selected_flags)], selected_flags)
     )
     
     plot_ly() %>%
@@ -126,7 +122,7 @@ server <- function(input, output, session) {
       arrange(desc(Count))
     
     # Assign colors
-    colors <- RColorBrewer::brewer.pal(n = max(3, nrow(flag_counts_long)), name = "Set1")
+    colors <- setNames(color_palette[1:nrow(flag_counts_long)], flag_counts_long$Flag)
     
     plot_ly(
       flag_counts_long,
