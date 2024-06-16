@@ -38,6 +38,10 @@ if (!exists("data") || is.null(data)) {
 all_flags <- colnames(data$flag)[-1] # Exclude CRN
 color_palette <- setNames(colorRampPalette(RColorBrewer::brewer.pal(n = 9, name = "Set1"))(length(all_flags)), all_flags)
 
+# Define the Young Drivers color palette with more contrasting colors
+young_drivers_palette <- setNames(c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"), 
+                                  c("DRIVER_16YR", "DRIVER_17YR", "DRIVER_18YR", "DRIVER_19YR", "DRIVER_20YR"))
+
 ui <- dashboardPage(
   dashboardHeader(title = "Philly Auto Collisions Dashboard"),
   
@@ -68,7 +72,7 @@ ui <- dashboardPage(
         ), column(
           width = 6,
           box(
-            title = "Summary Statistics",
+            title = "Total Collisions",
             width = NULL,
             selectInput(
               "flagSelection",
@@ -86,6 +90,12 @@ ui <- dashboardPage(
             actionButton("presetAlcoholDrugs", "Alcohol and Drugs"),
             actionButton("presetYoungDrivers", "Young Drivers"),
             actionButton("presetVulnerableUsers", "Vulnerable Users"),
+            actionButton("presetWeatherRelated", "Weather Related"),
+            actionButton("presetIntersectionRelated", "Intersection Related"),
+            actionButton("presetDistractedDriving", "Distracted Driving"),
+            actionButton("presetCommercialVehicles", "Commercial Vehicles"),
+            actionButton("presetTimeOfDay", "Time of Day"),
+            actionButton("presetRoadConditions", "Road Conditions"),
             plotlyOutput("summaryStats", height = 350),
             textOutput("noFlagsSelected"),
             uiOutput("resetButtonUI")
@@ -95,7 +105,10 @@ ui <- dashboardPage(
       tabItem(
         tabName = "about",
         h2("About this dashboard"),
-        p("This dashboard visualizes auto collision data in Philadelphia.")
+        p("This dashboard visualizes auto collision data in Philadelphia. The data is sourced from the Pennsylvania Department of Transportation (PennDOT) and includes information about the circumstances of each collision, such as weather conditions, road conditions, and driver-related factors."),
+        p("The dashboard allows users to explore trends in collision data over time and analyze the impact of various factors on collision rates. Users can select specific crash flags to display total collisions for different types of collisions."),
+        # include a link to this data dictionary pdf
+        p("For more information about the data fields and their meanings, please refer to the ", a("data dictionary", href = "https://gis.penndot.gov/gishub/crashZip/Crash%20Data%20Dictionary%2005.2023.pdf"), ".")
       )
     )
   )
@@ -132,10 +145,15 @@ server <- function(input, output, session) {
       }
     }
     
-    colors <- c(
-      "Total Collisions" = "#66c2a5",
-      color_palette[selected_flags]
-    )
+    if (any(selected_flags %in% names(young_drivers_palette))) {
+      cat("Young Drivers palette applied\n") # Debug message
+      colors <- young_drivers_palette[selected_flags]
+    } else {
+      colors <- c(
+        "Total Collisions" = "#66c2a5",
+        color_palette[selected_flags]
+      )
+    }
     
     p <- plot_ly(trend_data, x = ~Year, y = ~Count, color = ~Flag, colors = colors, type = 'scatter', mode = 'lines+markers', source = "collisionTrend") %>%
       layout(
@@ -234,14 +252,19 @@ server <- function(input, output, session) {
       arrange(desc(Count))
     
     # Assign colors
-    colors <- color_palette[flag_counts_long$Flag]
+    if (any(selected_flags %in% names(young_drivers_palette))) {
+      cat("Young Drivers palette applied to bar chart\n") # Debug message
+      colors <- young_drivers_palette[flag_counts_long$Flag]
+    } else {
+      colors <- color_palette[flag_counts_long$Flag]
+    }
     
     plot_title <- if (!is.null(year)) {
-      paste("Summary Statistics for Year", year)
+      paste("Total Collisions for Year", year)
     } else if (!is.null(year_range)) {
-      paste("Summary Statistics for Years", year_range[1], "to", year_range[2])
+      paste("Total Collisions for Years", year_range[1], "to", year_range[2])
     } else {
-      "Summary Statistics"
+      "Total Collisions"
     }
     
     plot_ly(
@@ -310,10 +333,15 @@ server <- function(input, output, session) {
           trend_data <- bind_rows(trend_data, trend_df_filtered)
         }
         
-        colors <- c(
-          "Total Collisions" = "#66c2a5",
-          color_palette[selected_flags]
-        )
+        if (any(selected_flags %in% names(young_drivers_palette))) {
+          cat("Young Drivers palette applied\n") # Debug message
+          colors <- young_drivers_palette[selected_flags]
+        } else {
+          colors <- c(
+            "Total Collisions" = "#66c2a5",
+            color_palette[selected_flags]
+          )
+        }
         
         plot_ly(trend_data, x = ~Year, y = ~Count, color = ~Flag, colors = colors, type = 'scatter', mode = 'lines+markers', source = "collisionTrend") %>%
           layout(
@@ -359,6 +387,30 @@ server <- function(input, output, session) {
   
   observeEvent(input$presetVulnerableUsers, {
     updateSelectInput(session, "flagSelection", selected = c("PEDESTRIAN", "BICYCLE", "MOTORCYCLE", "VULNERABLE_ROADWAY_USER"))
+  })
+  
+  observeEvent(input$presetWeatherRelated, {
+    updateSelectInput(session, "flagSelection", selected = c("RAIN", "SNOW", "FOG", "SLEET", "WEATHER_RELATED"))
+  })
+  
+  observeEvent(input$presetIntersectionRelated, {
+    updateSelectInput(session, "flagSelection", selected = c("INTERSECTION", "INTERSECTION_RELATED"))
+  })
+  
+  observeEvent(input$presetDistractedDriving, {
+    updateSelectInput(session, "flagSelection", selected = c("DISTRACTED", "DISTRACTED_DRIVER"))
+  })
+  
+  observeEvent(input$presetCommercialVehicles, {
+    updateSelectInput(session, "flagSelection", selected = c("COMM_VEHICLE"))
+  })
+  
+  observeEvent(input$presetTimeOfDay, {
+    updateSelectInput(session, "flagSelection", selected = c("RUSH_HOUR", "NIGHT", "DAY"))
+  })
+  
+  observeEvent(input$presetRoadConditions, {
+    updateSelectInput(session, "flagSelection", selected = c("ROAD_CONDITION", "WET_ROAD", "ICY_ROAD", "DRY_ROAD"))
   })
 }
 
