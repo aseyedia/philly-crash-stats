@@ -6,7 +6,8 @@ library(shinyjs)
 library(tidyverse)
 
 # Load preprocessed data
-if !exists(data)
+# if object data does not exist in environment, load the data
+if (!exists("data"))
   load("~/githubProjects/philly-crash-stats/data/processed_rdata/preprocessed.Rdata")
 
 # Generate a dynamic color palette for all flags
