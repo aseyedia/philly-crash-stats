@@ -108,7 +108,7 @@ server <- function(input, output, session) {
       ) %>%
       config(displayModeBar = FALSE)
     
-    p
+    p %>% event_register("plotly_selecting")
   })
   
   # Update summary stats based on click and double-click events
@@ -123,7 +123,7 @@ server <- function(input, output, session) {
   
   # Update summary stats based on selection events
   observe({
-    select_data <- event_data("plotly_selected", source = "collisionTrend")
+    select_data <- event_data("plotly_selecting", source = "collisionTrend")
     
     if (!is.null(select_data) && length(select_data$x) > 0) {
       selected_year_range(range(select_data$x))
