@@ -1,4 +1,5 @@
 library(shiny)
+library(shinytest2)
 library(shinydashboard)
 library(plotly)
 library(shinyjs)
@@ -62,12 +63,6 @@ server <- function(input, output, session) {
   # Define a reactive value to store the selected year
   selected_year <- reactiveVal(NULL)
   
-  # Register the click event for the plot
-  observe({
-    plotlyProxy("collisionTrend", session) %>% 
-      event_register("plotly_click")
-  })
-  
   # Render collision trend over time
   output$collisionTrend <- renderPlotly({
     trend_df <- data$crash %>%
@@ -98,7 +93,7 @@ server <- function(input, output, session) {
       color_palette[selected_flags]
     )
     
-    plot_ly(source = "collisionTrend") %>%
+    p <- plot_ly(source = "collisionTrend") %>%
       add_lines(data = trend_data, x = ~Year, y = ~Count, color = ~Flag, colors = colors) %>%
       layout(
         xaxis = list(title = "Year"),
@@ -106,13 +101,19 @@ server <- function(input, output, session) {
         hovermode = "x unified"
       ) %>%
       config(displayModeBar = FALSE)
+    
+    p
   })
   
-  # Observe the click event on the trend line plot
-  observeEvent(event_data("plotly_click", source = "collisionTrend"), {
+  # Update summary stats based on click and double-click events
+  observe({
     click_data <- event_data("plotly_click", source = "collisionTrend")
+    doubleclick_data <- event_data("plotly_doubleclick", source = "collisionTrend")
+    
     if (!is.null(click_data)) {
       selected_year(click_data$x)
+    } else if (!is.null(doubleclick_data)) {
+      selected_year(NULL)
     }
   })
   
@@ -126,9 +127,6 @@ server <- function(input, output, session) {
     }
     
     if (!is.null(year)) {
-      # Ensure year is a single value
-      year <- as.integer(year)
-      
       flag_counts <- data$flag %>%
         filter(CRN %in% data$crash$CRN[data$crash$CRASH_YEAR == year]) %>%
         select(CRN, all_of(selected_flags)) %>%
@@ -153,6 +151,12 @@ server <- function(input, output, session) {
     # Assign colors
     colors <- color_palette[flag_counts_long$Flag]
     
+    plot_title <- if (!is.null(year)) {
+      paste("Summary Statistics for Year", year)
+    } else {
+      "Summary Statistics"
+    }
+    
     plot_ly(
       flag_counts_long,
       x = ~Flag,
@@ -165,7 +169,7 @@ server <- function(input, output, session) {
       layout(
         xaxis = list(title = "Crash Flags"),
         yaxis = list(title = "Count"),
-        title = "Summary Statistics"
+        title = plot_title
       ) %>%
       config(displayModeBar = FALSE)
   })
