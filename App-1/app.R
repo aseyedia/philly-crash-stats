@@ -3,9 +3,10 @@ library(shinydashboard)
 library(plotly)
 library(shinyjs)
 library(tidyverse)
+library(leaflet)
+library(leaflet.extras)
 
 # Load preprocessed data
-# if object data does not exist in environment, load the data
 if (!exists("data"))
   load("~/githubProjects/philly-crash-stats/data/processed_rdata/preprocessed.Rdata")
 
@@ -39,6 +40,11 @@ ui <- dashboardPage(
             title = "Collision Trend Over Time",
             width = NULL,
             plotlyOutput("collisionTrend", height = 350)
+          ),
+          box(
+            title = "Map of Collisions",
+            width = NULL,
+            leafletOutput("collisionMap", height = 350)
           )
         ), column(
           width = 6,
@@ -302,6 +308,30 @@ server <- function(input, output, session) {
   # Disable all flags
   observeEvent(input$disableAllFlags, {
     updateSelectInput(session, "flagSelection", selected = character(0))
+  })
+  
+  # Render the Leaflet map with collision points or heatmap
+  output$collisionMap <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      setView(lng = -75.1652, lat = 39.9526, zoom = 12) # Center map on Philadelphia
+  })
+  
+  # Observe changes in the selected flags and update the map
+  observe({
+    filtered_data <- data$crash %>%
+      filter(!is.na(DEC_LAT) & !is.na(DEC_LONG)) %>%
+      select(CRASH_YEAR, DEC_LAT, DEC_LONG)
+    
+    if (nrow(filtered_data) > 1000) {
+      leafletProxy("collisionMap", data = filtered_data) %>%
+        clearMarkers() %>%
+        addHeatmap(lng = ~DEC_LONG, lat = ~DEC_LAT, blur = 20, max = 0.05)
+    } else {
+      leafletProxy("collisionMap", data = filtered_data) %>%
+        clearMarkers() %>%
+        addCircleMarkers(~DEC_LONG, ~DEC_LAT, popup = ~paste("Year:", CRASH_YEAR), radius = 3)
+    }
   })
 }
 
