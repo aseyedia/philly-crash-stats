@@ -25,6 +25,7 @@ ui <- dashboardPage(
         tabName = "dashboard",
         icon = icon("dashboard")
       ),
+      menuItem("Map", tabName = "map", icon = icon("map")),
       menuItem("About", tabName = "about", icon = icon("info-circle"))
     ), 
     width = 250
@@ -40,11 +41,6 @@ ui <- dashboardPage(
             title = "Collision Trend Over Time",
             width = NULL,
             plotlyOutput("collisionTrend", height = 350)
-          ),
-          box(
-            title = "Map of Collisions",
-            width = NULL,
-            leafletOutput("collisionMap", height = 350)
           )
         ), column(
           width = 6,
@@ -71,7 +67,18 @@ ui <- dashboardPage(
         tabName = "about",
         h2("About this dashboard"),
         p("This dashboard visualizes auto collision data in Philadelphia.")
-      )
+      ),
+      tabItem(tabName = "map", fluidRow(
+        column(
+          width = 12,
+          box(
+            title = "Collision Map",
+            width = NULL,
+            leafletOutput("collisionMap", height = 600)
+          ),
+          radioButtons("mapType", "Select Map Type:", choices = c("Points", "Heatmap"), selected = "Points")
+        )
+      ))
     )
   )
 )
@@ -310,27 +317,34 @@ server <- function(input, output, session) {
     updateSelectInput(session, "flagSelection", selected = character(0))
   })
   
-  # Render the Leaflet map with collision points or heatmap
+  # Render leaflet map with points or heatmap based on the selection
   output$collisionMap <- renderLeaflet({
-    leaflet() %>%
-      addTiles() %>%
-      setView(lng = -75.1652, lat = 39.9526, zoom = 12) # Center map on Philadelphia
+    leaflet(data = data$crash) %>%
+      addProviderTiles(providers$Stamen.TonerLite) %>%
+      setView(lng = -75.1652, lat = 39.9526, zoom = 12)
   })
   
-  # Observe changes in the selected flags and update the map
+  # Observe map type selection and update the map accordingly
   observe({
-    filtered_data <- data$crash %>%
-      filter(!is.na(DEC_LAT) & !is.na(DEC_LONG)) %>%
-      select(CRASH_YEAR, DEC_LAT, DEC_LONG)
+    mapType <- input$mapType
+    proxy <- leafletProxy("collisionMap")
     
-    if (nrow(filtered_data) > 1000) {
-      leafletProxy("collisionMap", data = filtered_data) %>%
+    if (mapType == "Points") {
+      proxy %>%
+        clearShapes() %>%
+        addCircleMarkers(
+          lng = ~DEC_LONG, lat = ~DEC_LAT,
+          radius = 2, color = "red",
+          popup = ~paste("Year:", CRASH_YEAR)
+        )
+    } else if (mapType == "Heatmap") {
+      proxy %>%
         clearMarkers() %>%
-        addHeatmap(lng = ~DEC_LONG, lat = ~DEC_LAT, blur = 20, max = 0.05)
-    } else {
-      leafletProxy("collisionMap", data = filtered_data) %>%
-        clearMarkers() %>%
-        addCircleMarkers(~DEC_LONG, ~DEC_LAT, popup = ~paste("Year:", CRASH_YEAR), radius = 3)
+        addHeatmap(
+          lng = ~DEC_LONG, lat = ~DEC_LAT,
+          intensity = ~1, blur = 20, max = 0.05,
+          radius = 15
+        )
     }
   })
 }
