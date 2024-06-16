@@ -5,7 +5,11 @@ library(shinyjs)
 library(tidyverse)
 
 # Load preprocessed data
-# load("data/processed_rdata/preprocessed.Rdata")
+load("~/githubProjects/philly-crash-stats/data/processed_rdata/preprocessed.Rdata")
+
+# Generate a dynamic color palette for all flags
+all_flags <- colnames(data$flag)[-1] # Exclude CRN
+color_palette <- setNames(colorRampPalette(RColorBrewer::brewer.pal(n = 9, name = "Set1"))(length(all_flags)), all_flags)
 
 ui <- dashboardPage(
   dashboardHeader(title = "Philly Auto Collisions Dashboard"),
@@ -37,8 +41,7 @@ ui <- dashboardPage(
                         selectInput(
                           "flagSelection",
                           "Select Crash Flags to Display:",
-                          choices = colnames(data$flag)[-1],
-                          # Exclude CRN
+                          choices = all_flags,
                           selected = c("FATAL", "INJURY"),
                           multiple = TRUE,
                           selectize = TRUE
@@ -56,9 +59,6 @@ ui <- dashboardPage(
 )
 
 server <- function(input, output, session) {
-  # Define a consistent color palette
-  color_palette <- RColorBrewer::brewer.pal(n = 12, name = "Set1")
-  
   # Render collision trend over time
   output$collisionTrend <- renderPlotly({
     trend_df <- data$crash %>%
@@ -86,7 +86,7 @@ server <- function(input, output, session) {
     
     colors <- c(
       "Total Collisions" = "#66c2a5",
-      setNames(color_palette[1:length(selected_flags)], selected_flags)
+      color_palette[selected_flags]
     )
     
     plot_ly() %>%
@@ -122,7 +122,7 @@ server <- function(input, output, session) {
       arrange(desc(Count))
     
     # Assign colors
-    colors <- setNames(color_palette[1:nrow(flag_counts_long)], flag_counts_long$Flag)
+    colors <- color_palette[flag_counts_long$Flag]
     
     plot_ly(
       flag_counts_long,
