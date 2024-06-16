@@ -143,6 +143,12 @@ server <- function(input, output, session) {
   observeEvent(input$resetButton, {
     selected_year(NULL)
     selected_year_range(NULL)
+    
+    plotlyProxy("collisionTrend", session) %>%
+      plotlyProxyInvoke("relayout", list("xaxis.range" = NULL, "yaxis.range" = NULL))
+    
+    plotlyProxy("collisionTrend", session) %>%
+      plotlyProxyInvoke("restyle", list(selectedpoints = list(NULL)), list(0, 1))
   })
   
   # Render summary statistics as a bar chart based on selected flags and selected year or range of years
