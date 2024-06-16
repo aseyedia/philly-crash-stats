@@ -104,7 +104,8 @@ server <- function(input, output, session) {
         dragmode = "select",  # Set dragmode to select
         xaxis = list(title = "Year"),
         yaxis = list(title = "Total Collisions"),
-        hovermode = "x unified"
+        hovermode = "x unified",
+        selectdirection = "h"
       ) %>%
       config(displayModeBar = FALSE)
     
