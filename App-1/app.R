@@ -53,6 +53,8 @@ ui <- dashboardPage(
               multiple = TRUE,
               selectize = TRUE
             ),
+            actionButton("enableAllFlags", "Enable All Flags"),
+            actionButton("disableAllFlags", "Disable All Flags"),
             plotlyOutput("summaryStats", height = 350),
             textOutput("noFlagsSelected"),
             uiOutput("resetButtonUI")
@@ -286,9 +288,20 @@ server <- function(input, output, session) {
             hovermode = "x unified",
             selectdirection = "h"
           ) %>%
-          config(displayModeBar = FALSE)
+          config(displayModeBar = FALSE) %>%
+          event_register("plotly_selecting")
       })
     }
+  })
+  
+  # Enable all flags
+  observeEvent(input$enableAllFlags, {
+    updateSelectInput(session, "flagSelection", selected = all_flags)
+  })
+  
+  # Disable all flags
+  observeEvent(input$disableAllFlags, {
+    updateSelectInput(session, "flagSelection", selected = character(0))
   })
 }
 
