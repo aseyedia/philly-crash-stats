@@ -24,39 +24,42 @@ ui <- dashboardPage(
     menuItem("About", tabName = "about", icon = icon("info-circle"))
   ), width = 250),
   
-  dashboardBody(useShinyjs(), # Initialize shinyjs
-                tabItems(
-                  tabItem(tabName = "dashboard", fluidRow(
-                    column(
-                      width = 6,
-                      box(
-                        title = "Collision Trend Over Time",
-                        width = NULL,
-                        plotlyOutput("collisionTrend", height = 350)
-                      )
-                    ), column(
-                      width = 6,
-                      box(
-                        title = "Summary Statistics",
-                        width = NULL,
-                        selectInput(
-                          "flagSelection",
-                          "Select Crash Flags to Display:",
-                          choices = all_flags,
-                          selected = c("FATAL", "INJURY"),
-                          multiple = TRUE,
-                          selectize = TRUE
-                        ),
-                        plotlyOutput("summaryStats", height = 350)
-                      )
-                    )
-                  )),
-                  tabItem(
-                    tabName = "about",
-                    h2("About this dashboard"),
-                    p("This dashboard visualizes auto collision data in Philadelphia.")
-                  )
-                ))
+  dashboardBody(
+    useShinyjs(), # Initialize shinyjs
+    tabItems(
+      tabItem(tabName = "dashboard", fluidRow(
+        column(
+          width = 6,
+          box(
+            title = "Collision Trend Over Time",
+            width = NULL,
+            plotlyOutput("collisionTrend", height = 350)
+          )
+        ), column(
+          width = 6,
+          box(
+            title = "Summary Statistics",
+            width = NULL,
+            selectInput(
+              "flagSelection",
+              "Select Crash Flags to Display:",
+              choices = all_flags,
+              selected = c("FATAL", "INJURY"),
+              multiple = TRUE,
+              selectize = TRUE
+            ),
+            plotlyOutput("summaryStats", height = 350),
+            uiOutput("resetButtonUI")
+          )
+        )
+      )),
+      tabItem(
+        tabName = "about",
+        h2("About this dashboard"),
+        p("This dashboard visualizes auto collision data in Philadelphia.")
+      )
+    )
+  )
 )
 
 server <- function(input, output, session) {
@@ -93,7 +96,7 @@ server <- function(input, output, session) {
       color_palette[selected_flags]
     )
     
-    p <- plot_ly(source = "collisionTrend") %>%
+    plot_ly(source = "collisionTrend") %>%
       add_lines(data = trend_data, x = ~Year, y = ~Count, color = ~Flag, colors = colors) %>%
       layout(
         xaxis = list(title = "Year"),
@@ -101,20 +104,27 @@ server <- function(input, output, session) {
         hovermode = "x unified"
       ) %>%
       config(displayModeBar = FALSE)
-    
-    p
   })
   
-  # Update summary stats based on click and double-click events
-  observe({
+  # Observe the click event on the trend line plot
+  observeEvent(event_data("plotly_click", source = "collisionTrend"), {
     click_data <- event_data("plotly_click", source = "collisionTrend")
-    doubleclick_data <- event_data("plotly_doubleclick", source = "collisionTrend")
-    
     if (!is.null(click_data)) {
       selected_year(click_data$x)
-    } else if (!is.null(doubleclick_data)) {
-      selected_year(NULL)
     }
+  })
+  
+  # Render reset button UI conditionally
+  output$resetButtonUI <- renderUI({
+    if (!is.null(selected_year())) {
+      actionButton("resetButton", "Reset Selections")
+    }
+  })
+  
+  # Reset selections when reset button is clicked
+  observeEvent(input$resetButton, {
+    selected_year(NULL)
+    js$resetClick()
   })
   
   # Render summary statistics as a bar chart based on selected flags and selected year
