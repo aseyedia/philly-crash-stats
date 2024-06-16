@@ -3,11 +3,36 @@ library(shinydashboard)
 library(plotly)
 library(shinyjs)
 library(tidyverse)
+library(here)
+
+# List files in the current working directory
+print("Files in current working directory:")
+print(list.files(getwd(), full.names = TRUE))
+
+# List files one directory up
+print("Files in the parent directory:")
+print(list.files(dirname(getwd()), full.names = TRUE))
+
+# List files in one directory down (subdirectories)
+print("Files in subdirectories:")
+subdirs <- list.dirs(getwd(), recursive = FALSE)
+for (subdir in subdirs) {
+  print(paste("Files in subdirectory", subdir, ":"))
+  print(list.files(subdir, full.names = TRUE))
+}
 
 # Load preprocessed data
-# if object data does not exist in environment, load the data
-if (!exists("data"))
-  load("~/githubProjects/philly-crash-stats/data/processed_rdata/preprocessed.Rdata")
+data_path <- "preprocessed.Rdata"
+if (file.exists(data_path)) {
+  load(data_path)
+} else {
+  stop("Data file not found: ", data_path)
+}
+
+# Verify that the data has been loaded correctly
+if (!exists("data") || is.null(data)) {
+  stop("Failed to load data from: ", data_path)
+}
 
 # Generate a dynamic color palette for all flags
 all_flags <- colnames(data$flag)[-1] # Exclude CRN
@@ -49,12 +74,18 @@ ui <- dashboardPage(
               "flagSelection",
               "Select Crash Flags to Display:",
               choices = all_flags,
-              selected = c("FATAL", "INJURY"),
+              selected = c("INJURY_OR_FATAL"),
               multiple = TRUE,
               selectize = TRUE
             ),
             actionButton("enableAllFlags", "Enable All Flags"),
             actionButton("disableAllFlags", "Disable All Flags"),
+            br(),
+            actionButton("presetInjuryFatal", "Injury or Fatal"),
+            actionButton("presetSpeedRelated", "Speed Related"),
+            actionButton("presetAlcoholDrugs", "Alcohol and Drugs"),
+            actionButton("presetYoungDrivers", "Young Drivers"),
+            actionButton("presetVulnerableUsers", "Vulnerable Users"),
             plotlyOutput("summaryStats", height = 350),
             textOutput("noFlagsSelected"),
             uiOutput("resetButtonUI")
@@ -92,9 +123,10 @@ server <- function(input, output, session) {
           filter(!!sym(flag) == 1) %>%
           select(CRN) %>%
           inner_join(data$crash, by = "CRN") %>%
-          group_by(Year = CRASH_YEAR) %>%
+          group_by(CRASH_YEAR) %>%
           summarise(Count = n()) %>%
-          mutate(Flag = flag)
+          mutate(Flag = flag) %>%
+          rename(Year = CRASH_YEAR)
         
         trend_data <- bind_rows(trend_data, trend_df_filtered)
       }
@@ -113,9 +145,11 @@ server <- function(input, output, session) {
         hovermode = "x unified",
         selectdirection = "h"
       ) %>%
-      config(displayModeBar = FALSE)
+      config(displayModeBar = FALSE) %>%
+      event_register("plotly_selecting") %>%
+      event_register("plotly_click")
     
-    p %>% event_register("plotly_selecting")
+    return(p)
   })
   
   # Update summary stats based on click and double-click events
@@ -268,9 +302,10 @@ server <- function(input, output, session) {
             filter(!!sym(flag) == 1) %>%
             select(CRN) %>%
             inner_join(data$crash, by = "CRN") %>%
-            group_by(Year = CRASH_YEAR) %>%
+            group_by(CRASH_YEAR) %>%
             summarise(Count = n()) %>%
-            mutate(Flag = flag)
+            mutate(Flag = flag) %>%
+            rename(Year = CRASH_YEAR)
           
           trend_data <- bind_rows(trend_data, trend_df_filtered)
         }
@@ -289,7 +324,8 @@ server <- function(input, output, session) {
             selectdirection = "h"
           ) %>%
           config(displayModeBar = FALSE) %>%
-          event_register("plotly_selecting")
+          event_register("plotly_selecting") %>%
+          event_register("plotly_click")
       })
     }
   })
@@ -302,6 +338,27 @@ server <- function(input, output, session) {
   # Disable all flags
   observeEvent(input$disableAllFlags, {
     updateSelectInput(session, "flagSelection", selected = character(0))
+  })
+  
+  # Preselected flag groups
+  observeEvent(input$presetInjuryFatal, {
+    updateSelectInput(session, "flagSelection", selected = c("INJURY_OR_FATAL"))
+  })
+  
+  observeEvent(input$presetSpeedRelated, {
+    updateSelectInput(session, "flagSelection", selected = c("SPEEDING", "SPEEDING_RELATED"))
+  })
+  
+  observeEvent(input$presetAlcoholDrugs, {
+    updateSelectInput(session, "flagSelection", selected = c("ALCOHOL_RELATED", "DRUG_RELATED", "DRUGGED_DRIVER"))
+  })
+  
+  observeEvent(input$presetYoungDrivers, {
+    updateSelectInput(session, "flagSelection", selected = c("DRIVER_16YR", "DRIVER_17YR", "DRIVER_18YR", "DRIVER_19YR", "DRIVER_20YR"))
+  })
+  
+  observeEvent(input$presetVulnerableUsers, {
+    updateSelectInput(session, "flagSelection", selected = c("PEDESTRIAN", "BICYCLE", "MOTORCYCLE", "VULNERABLE_ROADWAY_USER"))
   })
 }
 
