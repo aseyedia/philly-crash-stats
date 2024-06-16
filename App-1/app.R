@@ -1,5 +1,4 @@
 library(shiny)
-library(shinytest2)
 library(shinydashboard)
 library(plotly)
 library(shinyjs)
@@ -55,6 +54,7 @@ ui <- dashboardPage(
               selectize = TRUE
             ),
             plotlyOutput("summaryStats", height = 350),
+            textOutput("noFlagsSelected"),
             uiOutput("resetButtonUI")
           )
         )
@@ -181,6 +181,11 @@ server <- function(input, output, session) {
         summarise(across(all_of(selected_flags), ~ sum(. == 1, na.rm = TRUE)))
     }
     
+    if (nrow(flag_counts) == 0) {
+      return(plotly_empty() %>%
+               layout(title = "No flags selected"))
+    }
+    
     flag_counts_long <- pivot_longer(
       flag_counts,
       cols = everything(),
@@ -218,6 +223,72 @@ server <- function(input, output, session) {
         title = plot_title
       ) %>%
       config(displayModeBar = FALSE)
+  })
+  
+  # Show a message when no flags are selected
+  output$noFlagsSelected <- renderText({
+    selected_flags <- input$flagSelection
+    if (is.null(selected_flags) || length(selected_flags) == 0) {
+      "No flags selected"
+    } else {
+      NULL
+    }
+  })
+  
+  # Show the total collisions trendline when no flags are selected
+  observe({
+    selected_flags <- input$flagSelection
+    if (is.null(selected_flags) || length(selected_flags) == 0) {
+      trend_df <- data$crash %>%
+        group_by(Year = CRASH_YEAR) %>%
+        summarise(Total = n())
+      
+      output$collisionTrend <- renderPlotly({
+        plot_ly(trend_df, x = ~Year, y = ~Total, type = 'scatter', mode = 'lines+markers') %>%
+          layout(
+            title = "Total Collisions Over Time",
+            xaxis = list(title = "Year"),
+            yaxis = list(title = "Total Collisions")
+          ) %>%
+          config(displayModeBar = FALSE)
+      })
+    } else {
+      output$collisionTrend <- renderPlotly({
+        trend_df <- data$crash %>%
+          group_by(Year = CRASH_YEAR) %>%
+          summarise(Total = n())
+        
+        trend_data <- trend_df %>%
+          mutate(Flag = "Total Collisions")
+        
+        for (flag in selected_flags) {
+          trend_df_filtered <- data$flag %>%
+            filter(!!sym(flag) == 1) %>%
+            select(CRN) %>%
+            inner_join(data$crash, by = "CRN") %>%
+            group_by(Year = CRASH_YEAR) %>%
+            summarise(Count = n()) %>%
+            mutate(Flag = flag)
+          
+          trend_data <- bind_rows(trend_data, trend_df_filtered)
+        }
+        
+        colors <- c(
+          "Total Collisions" = "#66c2a5",
+          color_palette[selected_flags]
+        )
+        
+        plot_ly(trend_data, x = ~Year, y = ~Count, color = ~Flag, colors = colors, type = 'scatter', mode = 'lines+markers', source = "collisionTrend") %>%
+          layout(
+            dragmode = "select",  # Set dragmode to select
+            xaxis = list(title = "Year"),
+            yaxis = list(title = "Total Collisions"),
+            hovermode = "x unified",
+            selectdirection = "h"
+          ) %>%
+          config(displayModeBar = FALSE)
+      })
+    }
   })
 }
 
