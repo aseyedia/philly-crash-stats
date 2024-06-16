@@ -3,7 +3,6 @@ library(shinydashboard)
 library(plotly)
 library(shinyjs)
 library(tidyverse)
-
 # Load preprocessed data
 load("~/githubProjects/philly-crash-stats/data/processed_rdata/preprocessed.Rdata")
 
@@ -59,6 +58,9 @@ ui <- dashboardPage(
 )
 
 server <- function(input, output, session) {
+  # Define a reactive value to store the selected year
+  selected_year <- reactiveVal(NULL) 
+  
   # Render collision trend over time
   output$collisionTrend <- renderPlotly({
     trend_df <- data$crash %>%
@@ -89,26 +91,52 @@ server <- function(input, output, session) {
       color_palette[selected_flags]
     )
     
-    plot_ly() %>%
+    plot_ly(source = "collisionTrend") %>%
       add_lines(data = trend_data, x = ~Year, y = ~Count, color = ~Flag, colors = colors) %>%
       layout(
         xaxis = list(title = "Year"),
         yaxis = list(title = "Total Collisions"),
         hovermode = "x unified"
       ) %>%
+      event_register("plotly_click") %>%
       config(displayModeBar = FALSE)
   })
   
-  # Render summary statistics as a bar chart based on selected flags
+  # Observe the click event on the trend line plot
+  observeEvent(event_data("plotly_click", source = "collisionTrend"), {
+    click_data <- event_data("plotly_click", source = "collisionTrend")
+    if (!is.null(click_data)) {
+      selected_year(click_data$x)
+    }
+  })
+  
+  # Render summary statistics as a bar chart based on selected flags and selected year
   output$summaryStats <- renderPlotly({
     selected_flags <- input$flagSelection
+    year <- selected_year() %>% unique()
+    
     if (is.null(selected_flags) || length(selected_flags) == 0) {
       return(NULL)
     }
     
-    flag_counts <- data$flag %>%
-      select(CRN, all_of(selected_flags)) %>%
-      summarise(across(all_of(selected_flags), ~ sum(. == 1, na.rm = TRUE)))
+    if (!is.null(year)) {
+      
+      # browser()
+      # Ensure year is a single value
+      year <- as.integer(year)
+      print(paste("Selected Year:", year))
+      print(paste("Length of CRN:", length(data$crash$CRN)))
+      print(paste("Length of CRASH_YEAR == year:", length(data$crash$CRASH_YEAR == year)))
+      
+      flag_counts <- data$flag %>%
+        filter(CRN %in% data$crash$CRN[data$crash$CRASH_YEAR == year]) %>%
+        select(CRN, all_of(selected_flags)) %>%
+        summarise(across(all_of(selected_flags), ~ sum(. == 1, na.rm = TRUE)))
+    } else {
+      flag_counts <- data$flag %>%
+        select(CRN, all_of(selected_flags)) %>%
+        summarise(across(all_of(selected_flags), ~ sum(. == 1, na.rm = TRUE)))
+    }
     
     flag_counts_long <- pivot_longer(
       flag_counts,
