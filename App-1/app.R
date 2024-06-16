@@ -3,6 +3,7 @@ library(shinydashboard)
 library(plotly)
 library(shinyjs)
 library(tidyverse)
+
 # Load preprocessed data
 load("~/githubProjects/philly-crash-stats/data/processed_rdata/preprocessed.Rdata")
 
@@ -59,7 +60,13 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   # Define a reactive value to store the selected year
-  selected_year <- reactiveVal(NULL) 
+  selected_year <- reactiveVal(NULL)
+  
+  # Register the click event for the plot
+  observe({
+    plotlyProxy("collisionTrend", session) %>% 
+      event_register("plotly_click")
+  })
   
   # Render collision trend over time
   output$collisionTrend <- renderPlotly({
@@ -98,7 +105,6 @@ server <- function(input, output, session) {
         yaxis = list(title = "Total Collisions"),
         hovermode = "x unified"
       ) %>%
-      event_register("plotly_click") %>%
       config(displayModeBar = FALSE)
   })
   
@@ -120,13 +126,8 @@ server <- function(input, output, session) {
     }
     
     if (!is.null(year)) {
-      
-      # browser()
       # Ensure year is a single value
       year <- as.integer(year)
-      print(paste("Selected Year:", year))
-      print(paste("Length of CRN:", length(data$crash$CRN)))
-      print(paste("Length of CRASH_YEAR == year:", length(data$crash$CRASH_YEAR == year)))
       
       flag_counts <- data$flag %>%
         filter(CRN %in% data$crash$CRN[data$crash$CRASH_YEAR == year]) %>%
