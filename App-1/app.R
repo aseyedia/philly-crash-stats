@@ -17,14 +17,18 @@ color_palette <- setNames(colorRampPalette(RColorBrewer::brewer.pal(n = 9, name 
 ui <- dashboardPage(
   dashboardHeader(title = "Philly Auto Collisions Dashboard"),
   
-  dashboardSidebar(sidebarMenu(
-    menuItem(
-      "Dashboard",
-      tabName = "dashboard",
-      icon = icon("dashboard")
-    ),
-    menuItem("About", tabName = "about", icon = icon("info-circle"))
-  ), width = 250),
+  dashboardSidebar(
+    collapsed = TRUE,  # Sidebar is collapsed by default
+    sidebarMenu(
+      menuItem(
+        "Dashboard",
+        tabName = "dashboard",
+        icon = icon("dashboard")
+      ),
+      menuItem("About", tabName = "about", icon = icon("info-circle"))
+    ), 
+    width = 250
+  ),
   
   dashboardBody(
     useShinyjs(), # Initialize shinyjs
