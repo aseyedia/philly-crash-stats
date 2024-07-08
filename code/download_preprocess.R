@@ -75,4 +75,9 @@ for (data_set in data_sets) {
   }
 }
 
+dir.create("data/processed/", showWarnings = FALSE)
+
+
 save(data, file = here::here("data/processed/preprocessed.Rdata"))
+
+
